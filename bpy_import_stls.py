@@ -1,6 +1,6 @@
 r'''blender execute:
 cd "C:\Program Files\Blender Foundation\Blender 3.1"
-.\blender.exe --factory-startup -P "C:\Users\niels\OneDrive\OneDriveDocs\BME\Thesis\Software\Scripts\gdsiistl\bpy_import_stls.py"
+.\blender.exe --factory-startup -P "<PATH>\bpy_import_stls.py"
 '''
 
 import bpy
@@ -89,7 +89,7 @@ for stl_check,stl_layer,stl_material,stl_dimension in zip(stl_checks,stl_layers,
             
             #apply material
             if RANDOM_MAT:
-                # Get material scr: https://blender.stackexchange.com/questions/23433/how-to-assign-a-new-material-to-an-object-in-the-scene-from-python
+                # Get material
                 mat = bpy.data.materials.new(name=mat_name)
                 mat.diffuse_color = random(), random(), random(), 1
 

@@ -343,15 +343,6 @@ class App(customtkinter.CTk):
                                                 command=self.open_blender)
         self.button_2.grid(row=3, column=0, pady=10, padx=20)
 
-        # self.button_3 = customtkinter.CTkButton(master=self.frame_left,
-        #                                         text="CTkButton 3",
-        #                                         fg_color=("gray75", "gray30"),  # <- custom tuple-color
-        #                                         command=self.button_event)
-        # self.button_3.grid(row=4, column=0, pady=10, padx=20)
-
-        # self.switch_1 = customtkinter.CTkSwitch(master=self.frame_left)
-        # self.switch_1.grid(row=9, column=0, pady=10, padx=20, sticky="w")
-
         self.switch_2 = customtkinter.CTkSwitch(master=self.frame_left,
                                                 text="Dark Mode",
                                                 command=self.change_mode)
@@ -359,7 +350,7 @@ class App(customtkinter.CTk):
 
         # ============ frame_right ============
 
-        # configure grid layout (3x7)
+        # configure grid layout (3x12)
         self.frame_right.rowconfigure(0, weight=10)
         self.frame_right.rowconfigure(1, weight=5)
         self.frame_right.rowconfigure(tuple(range(2,2+len(self.lb))), weight=2)
@@ -389,17 +380,6 @@ class App(customtkinter.CTk):
         #Layer button (layer button checkbox, layer button entry)
         for i in range(len(self.lb)):
             self.lb[i] = self.make_gds_layer_button(i)
-
-        # set default values
-        # self.radio_button_1.select()
-        self.switch_2.select()
-        # self.slider_1.set(0.2)
-        # self.slider_2.set(0.7)
-        # self.progressbar.set(0.5)
-        # self.slider_button_1.configure(state=tkinter.DISABLED, text="Disabled Button")
-        # self.radio_button_3.configure(state=tkinter.DISABLED)
-        # self.check_box_1.configure(state=tkinter.DISABLED, text="CheckBox disabled")
-        # self.check_box_2.select()
 
     def button_event(self):
         print("Button pressed")

@@ -5,7 +5,7 @@ This is a GUI for opening GDSII files in Blender.
 What can it do?
 - convert your layout to STL files
   - these can be deselected and selected for Blender
-- opens blender
+- open the stl files in Blender
   - add selected materials
   - add selected thickness
   - produce proper eevee-render settings

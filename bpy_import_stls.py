@@ -154,5 +154,9 @@ ob = bpy.context.active_object
 ob.data.energy = 5000
 bpy.data.objects["Sun"].select_set(False)
 
+bpy.context.scene.eevee.use_ssr = True
+bpy.context.scene.eevee.use_ssr_refraction = True
+bpy.context.scene.render.film_transparent = True
+
 
 bpy.ops.object.select_all(action='DESELECT')

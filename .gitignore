@@ -2,3 +2,4 @@ build/
 dist/
 BlendGDSII.spec
 *.stl
+*.blend1

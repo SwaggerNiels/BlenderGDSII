@@ -13,6 +13,7 @@ from stl import mesh # write stl file (python package name is "numpy-stl")
 import triangle # triangulate polygons
 
 #call blender
+import threading
 import subprocess
 
 #find newest blender.exe installation
@@ -21,6 +22,10 @@ BLENDER_PATH = glob.glob(r'C:\Program Files\Blender Foundation\Blender*\blender.
 
 #find my path
 MY_PATH = '\\'.join(__file__.split('\\')[:-1])
+
+#additional imports
+import os
+import pandas as pd
 
 customtkinter.set_appearance_mode("System")  # Modes: "System" (standard), "Dark", "Light"
 customtkinter.set_default_color_theme("blue")  # Themes: "blue" (standard), "green", "dark-blue"
@@ -289,6 +294,7 @@ class App(customtkinter.CTk):
     WIDTH = 780
     HEIGHT = 780
     lb = list(range(10))
+    gdsii_file_path = ''
 
     material_options = [
         'Gold',
@@ -328,27 +334,47 @@ class App(customtkinter.CTk):
         # ============ frame_left ============
 
         # configure grid layout (1x11)
-        self.frame_left.grid_rowconfigure(0, minsize=10)   # empty row with minsize as spacing
-        self.frame_left.grid_rowconfigure(5, weight=1)  # empty row as spacing
-        self.frame_left.grid_rowconfigure(8, minsize=20)    # empty row with minsize as spacing
-        self.frame_left.grid_rowconfigure(11, minsize=10)  # empty row with minsize as spacing
+        self.frame_left.grid_rowconfigure(tuple(range(11)), minsize=10)   # empty row with minsize as spacing
 
         self.label_1 = customtkinter.CTkLabel(master=self.frame_left,
                                               text="BlendGDSII\nlayout to blender",
                                               text_font=("Roboto Medium", -16))  # font name and size in px
         self.label_1.grid(row=1, column=0, pady=10, padx=10)
 
+        #Convert button
         self.button_1 = customtkinter.CTkButton(master=self.frame_left,
                                                 text="Convert\n\nGDSII to STL files",
                                                 fg_color=("gray75", "gray30"),  # <- custom tuple-color
                                                 command=self.make_stls)
         self.button_1.grid(row=2, column=0, pady=10, padx=20)
 
+        #Open button
         self.button_2 = customtkinter.CTkButton(master=self.frame_left,
                                                 text="Open\n\nSTL files in Blender",
                                                 fg_color=("gray75", "gray30"),  # <- custom tuple-color
                                                 command=self.open_blender)
         self.button_2.grid(row=3, column=0, pady=10, padx=20)
+        
+        #Load button
+        self.button_3 = customtkinter.CTkButton(master=self.frame_left,
+                                                text="Load\n\nGDSII configuration",
+                                                fg_color=("gray75", "gray30"),  # <- custom tuple-color
+                                                command=self.load)
+        self.button_3.grid(row=4, column=0, pady=10, padx=20)
+        
+        #Save button
+        self.button_4 = customtkinter.CTkButton(master=self.frame_left,
+                                                text="Save\n\nGDSII configuration",
+                                                fg_color=("gray75", "gray30"),  # <- custom tuple-color
+                                                command=self.save)
+        self.button_4.grid(row=5, column=0, pady=10, padx=20)
+        
+        #Test button
+        # self.button_5 = customtkinter.CTkButton(master=self.frame_left,
+        #                                         text="Testing\n\nView GDSII file",
+        #                                         fg_color=("gray75", "gray30"),  # <- custom tuple-color
+        #                                         command=self.testing)
+        # self.button_5.grid(row=6, column=0, pady=10, padx=20)
 
         self.switch_2 = customtkinter.CTkSwitch(master=self.frame_left,
                                                 text="Dark Mode",
@@ -374,8 +400,7 @@ class App(customtkinter.CTk):
                                                        "Click the blue button on the left 'Convert' to convert your layers to 3D\n" +
                                                         "Wait a moment to convert...\n" +
                                                         "Now you can open Blender by pressing the 'Open' button on the left.\n" +
-                                                        "Wait a moment to import...\n" +
-                                                        "Always close Blender before using this GUI again." ,
+                                                        "Wait a moment to import... (can take some time for detailed layout)" ,
                                                    height=100,
                                                    fg_color=("white", "gray38"),  # <- custom tuple-color
                                                    justify=tkinter.LEFT)
@@ -383,7 +408,7 @@ class App(customtkinter.CTk):
         
         self.gdsii_file_path_button = customtkinter.CTkButton(master=self.frame_right,
                                                 text="Select GDSII file here",
-                                                command=self.open,
+                                                command=self.open_gds,
                                                 height=50)
         self.gdsii_file_path_button.grid(row=1, column=0, columnspan=5, pady=20, padx=20, sticky="we")
 
@@ -393,43 +418,123 @@ class App(customtkinter.CTk):
 
         self.switch_2.select()
 
-    def button_event(self):
-        print("Button pressed")
+    def save(self):
+        # save configuration
+        self.win = customtkinter.CTkToplevel()
+        self.win.wm_title("Save this configuration")
+
+        self.save_name_entry = customtkinter.CTkEntry(master=self.win,
+            placeholder_text="configuration name")
+        self.save_name_entry.grid(row=0, column=0, pady=20, padx=20, sticky="n")
+
+        b = customtkinter.CTkButton(self.win, text="Save", command=self.save_file)
+        b.grid(row=1, column=0)
+    
+    def save_file(self):
+        save_path = MY_PATH+r'/saved'+'//'+self.save_name_entry.get()+'.txt'
+        self.setget_data() #retrieve info from gui into data and data_string
+
+        save_data = [self.gdsii_file_path, self.data_string]
+        save_prompt = '\n'.join(save_data)
+        
+        with open(save_path,'w') as f:
+            f.write(save_prompt)
+
+        print(f'Saved to {save_path}:\n{save_prompt}')
+        self.win.destroy()
+
+    def load(self):
+        # find saved configurations
+        saves = glob.glob(MY_PATH+r'/saved/*.txt')
+        print(f'Found save files:\n{saves}')
+        if len(saves) > 0:
+            self.win = customtkinter.CTkToplevel()
+            self.win.wm_title("Load previous configuration")
+
+            l = customtkinter.CTkLabel(self.win, text="Load save")
+            l.grid(row=0, column=0, pady=20, padx=20, sticky="n")
+
+            b = customtkinter.CTkButton(self.win, text="Back", command=self.win.destroy)
+            b.grid(row=1, column=0, pady=20, padx=20, sticky="n")
+
+            for i,save in enumerate(saves):
+                c=customtkinter.CTkButton(self.win, text=save)
+                c.grid(row=i+2, column=0, pady=10, padx=20, sticky="n")
+                c.config(command=lambda save = save: self.load_file(save))
+                
+                d = customtkinter.CTkButton(self.win, text='delete')
+                d.grid(row=i+2, column=1, pady=10, padx=5, sticky="n")
+                d.config(command=lambda c=c, d=d, save=save: self.remove_file(c,d,save))
+
+    def load_file(self,save):
+        print(f'SETTING: {save}')
+        with open(save, 'r') as f:
+            lines = f.read().split('\n')
+            if len(lines) > 0:
+                print(lines)
+                self.gdsii_file_path = lines[0]
+                self.setget_data(data_string = '\n'.join(lines[1:]))
+
+                load_prompt = self.data_string
+                print(f'Set configuration:\n{save}\n{load_prompt}')
+            else:
+                print('This configuration is empty, please delete it')
+
+        self.set_gds_button_text(self.gdsii_file_path)
+        self.win.destroy()
+
+    def remove_file(self,c,d,save):
+        c.destroy()
+        d.destroy()
+
+        os.remove(save)
 
     def make_gds_layer_button(self,row_i):
         #checkbox (active)
+        check = tkinter.IntVar(self.frame_right)
         layer_button_check = customtkinter.CTkCheckBox(master=self.frame_right,
-                                                           text='')
+                                                           text='',variable=check)
         layer_button_check.grid(row=row_i+2, column=0, pady=10, padx=5, sticky="n")
         
         #entry (gds_layer)
-        layer_button_entry = customtkinter.CTkEntry(master=self.frame_right,
-                                                           placeholder_text="GDSII-layer")
-        layer_button_entry.grid(row=row_i+2, column=1, pady=10, padx=5, sticky="n")
+        entry_var = tkinter.StringVar(self.frame_right)
+        entry = customtkinter.CTkEntry(master=self.frame_right,
+                                                           placeholder_text="GDSII-layer",)
+                                                        #    textvariable = entry_var)
+        entry.grid(row=row_i+2, column=1, pady=10, padx=5, sticky="n")
 
         #option (material)
         material = tkinter.StringVar(self.frame_right)
         material.set(self.material_options[0])
-        layer_button_option = customtkinter.CTkOptionMenu(master = self.frame_right,variable = material,values = self.material_options)
+        layer_button_option = customtkinter.CTkOptionMenu(master = self.frame_right,
+                                    variable = material,values = self.material_options)
         layer_button_option.grid(row=row_i+2, column=2, pady=10, padx=20, sticky="n")
         
         #limits (dimensions) - lower bound and upper bound
-        layer_button_entry_lbound = customtkinter.CTkEntry(master=self.frame_right,
-                                                           placeholder_text="Bottom height [nm]")
-        layer_button_entry_lbound.grid(row=row_i+2, column=3, pady=10, padx=5, sticky="n")
+        lbound_var = tkinter.StringVar(self.frame_right)
+        lbound = customtkinter.CTkEntry(master=self.frame_right,
+                                                           placeholder_text="Bottom height [nm]",)
+                                                        #    textvariable = lbound_var)
+        lbound.grid(row=row_i+2, column=3, pady=10, padx=5, sticky="n")
         
-        layer_button_entry_ubound = customtkinter.CTkEntry(master=self.frame_right,
-                                                           placeholder_text="Top height [nm]")
-        layer_button_entry_ubound.grid(row=row_i+2, column=4, pady=10, padx=5, sticky="n")
+        ubound_var = tkinter.StringVar(self.frame_right)
+        ubound = customtkinter.CTkEntry(master=self.frame_right,
+                                                           placeholder_text="Top height [nm]",)
+                                                        #    textvariable = ubound_var)
+        ubound.grid(row=row_i+2, column=4, pady=10, padx=5, sticky="n")
+        
+        return(check,entry,material,lbound,ubound)
 
-        return (layer_button_check,layer_button_entry,layer_button_option,material,layer_button_entry_lbound,layer_button_entry_ubound)
-
-    def open(self):
+    def open_gds(self):
         filePath = askopenfilename(
             initialdir='C:/', title='Select a File', filetype=(("GDSII File", ".gds"), ("All Files", "*.*")))
         with open(filePath, 'rb') as askedFile:
             fileContents = askedFile.read()
+        self.gdsii_file_path = filePath
 
+        self.set_gds_button_text(filePath)
+    
+    def set_gds_button_text(self, filePath):
         n = 80
         path_strs = [str(filePath)[i:i+n] for i in range(0, len(str(filePath)), n)]
         button_text = '\n'.join(path_strs)
@@ -443,12 +548,68 @@ class App(customtkinter.CTk):
         else:
             customtkinter.set_appearance_mode("light")
 
+    def setentry(self,e,text):
+        e.delete(0,tkinter.END)
+        e.insert(0,text)
+        e.set_placeholder()
+        return
+
+    def setget_data(self, data = [], data_string = ''):
+        #SET
+        if data != []:
+            print(data)
+            #set values in gui from data
+            for b,d in zip(self.lb,data):
+                check,entry,material,lbound,ubound = b
+                print(d)
+                chset,enset,materset,lboset,uboset = d
+                
+                check.set(int(chset))
+                self.setentry(entry,enset)
+                material.set(materset)
+                self.setentry(lbound,lboset)
+                self.setentry(ubound,uboset)
+        elif data_string != '':
+            print(data_string)
+            #set values in gui from string
+            data_lines = data_string.split('\n')
+            for b,d in zip(self.lb,data_lines):
+                check,entry,material,lbound,ubound = b
+                print(d)
+                chset,enset,materset,lboset,uboset = d.split(',')
+                
+                check.set(int(chset))
+                self.setentry(entry,enset)
+                material.set(materset)
+                self.setentry(lbound,lboset)
+                self.setentry(ubound,uboset)
+        
+        #GET
+        #get values in gui to data and string
+        data = []
+        for b in self.lb:
+            check,entry,material,lbound,ubound = b
+            data.append([
+                check.get(),
+                entry.get(),
+                material.get(),
+                lbound.get(),
+                ubound.get(),
+                ])
+        
+        data_string = '\n'.join([','.join(map(str,row)) for row in data])
+        
+        self.update()
+        
+        self.data = data
+        self.data_string = data_string
+
     def make_stls(self):
         #Check which layers are needed and write according dictionary
         layerstack = {}
         
         for b in self.lb:
-            check,entry,options,material,lbound,lbound = b
+            check,entry,material,lbound,ubound = b
             
             active = check.get()
             
@@ -476,17 +637,31 @@ class App(customtkinter.CTk):
             '--',
             stl_folder,
             MY_PATH + r'\materials.blend',
-            ','.join([str(check.get()) for check,_,_,_,_,_ in self.lb][::-1]),
-            ','.join([entry.get() for _,entry,_,_,_,_ in self.lb][::-1]),
-            ','.join([material.get() for _,_,_,material,_,_ in self.lb][::-1]),
-            ','.join([f'({lbound.get()};{ubound.get()})' for _,_,_,_,lbound,ubound in self.lb][::-1]),
+            ','.join([str(check.get()) for check,_,_,_,_ in self.lb][::-1]),
+            ','.join([entry.get() for _,entry,_,_,_ in self.lb][::-1]),
+            ','.join([material.get() for _,_,material,_,_ in self.lb][::-1]),
+            ','.join([f'({lbound.get()};{ubound.get()})' for _,_,_,lbound,ubound in self.lb][::-1]),
         ]
         print(cmd)
-        subprocess.call(cmd, shell=False)
+        blender_call = lambda cmd=cmd : subprocess.call(cmd, shell=False)
+
+        t = threading.Thread(target=blender_call)
+        t.daemon = True # close pipe if GUI process exits
+        t.start()
 
     def on_closing(self, event=0):
         self.destroy()
 
+    def testing(self):
+        # print(f'Reading GDSII file {self.gdsii_file_path}...')
+        # gdsii = gdspy.GdsLibrary()
+        # gdsii.read_gds(self.gdsii_file_path, units='import')
+        # print(gdsii.cells)
+        
+        self.setget_data()
+        print(self.data)
+        print(self.data_string)
+        
 
 if __name__ == "__main__":
     app = App()

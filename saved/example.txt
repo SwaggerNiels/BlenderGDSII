@@ -1,0 +1,11 @@
+C:/Users/niels/OneDrive/OneDriveDocs/BME/Thesis/Software/Scripts/BlendGDSII/example/example.gds
+1,83,SU8,100,500
+1,82,SU8,0,100
+1,15,Silicon,-100,0
+0,,Gold,,
+0,,Gold,,
+0,,Gold,,
+0,,Gold,,
+0,,Gold,,
+0,,Gold,,
+0,,Gold,,

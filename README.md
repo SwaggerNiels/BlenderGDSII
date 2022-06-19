@@ -12,9 +12,4 @@ https://github.com/SwaggerNiels/BlenderGDSII
 
 ## Interface:
 
-![afbeelding](https://user-images.githubusercontent.com/58084010/173412463-488475b6-9f02-4678-a269-f89fe0542e4b.png)
-
-## Blender:
-
-![afbeelding](https://user-images.githubusercontent.com/58084010/173412170-38c57a90-c385-4d21-a66b-df049108b859.png)
-
+![afbeelding](https://user-images.githubusercontent.com/58084010/174477414-becdbdb6-7cc1-4afd-8e41-ec444d0b2b4c.png)

@@ -3,15 +3,15 @@ If you want to have presentable 3D images of your microfabrication layout use th
 This is a GUI for opening GDSII files in Blender. 
 
 What can it do?
--convert your layout to STL files
-  -these can be deselected and selected for Blender
--opens blender
-  -add selected materials
-  -add selected thickness
-  -produce proper eevee-render settings
--save sessions
--load sessions
--delete saved sessions
+- convert your layout to STL files
+  - these can be deselected and selected for Blender
+- opens blender
+  - add selected materials
+  - add selected thickness
+  - produce proper eevee-render settings
+- save sessions
+- load sessions
+- delete saved sessions
 
 Works with most GDSII files produced in KLayout,L-Edit or similar software.
 

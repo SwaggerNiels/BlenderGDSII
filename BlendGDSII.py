@@ -21,11 +21,21 @@ import glob
 BLENDER_PATH = glob.glob(r'C:\Program Files\Blender Foundation\Blender*\blender.exe')[-1]
 
 #find my path
-MY_PATH = '\\'.join(__file__.split('\\')[:-1])
-
-#additional imports
 import os
-import pandas as pd
+MY_PATH = os.path.dirname(__file__)
+
+with open(MY_PATH + '/saved/example.txt','w') as f:
+    f.write(f'''{MY_PATH}\\example\\example.gds
+1,83,SU8,100,500
+1,82,Gold,0,100
+1,15,Silicon,-100,0
+0,,Gold,,
+0,,Gold,,
+0,,Gold,,
+0,,Gold,,
+0,,Gold,,
+0,,Gold,,
+0,,Gold,,''')
 
 customtkinter.set_appearance_mode("System")  # Modes: "System" (standard), "Dark", "Light"
 customtkinter.set_default_color_theme("blue")  # Themes: "blue" (standard), "green", "dark-blue"
@@ -281,7 +291,7 @@ def gdsiistl(gdsii_file_path, layerstack):
             layer_pointer += len(faces)
 
         # save layer to STL file
-        empty_file_path = '\\'.join(gdsii_file_path.split('/')[:-1]) + '\\'
+        empty_file_path = '\\'.join(gdsii_file_path.split('\\')[:-1]) + '\\'
         filename = empty_file_path.replace('.','_') + f'{layername}.stl'
         print('    ({}, {}) to {}'.format(layer, layername, filename))
         layer_mesh_object = mesh.Mesh(layer_mesh_data, remove_empty_areas=False)
@@ -626,7 +636,7 @@ class App(customtkinter.CTk):
         
     def open_blender(self):
         gdsii_file_path = self.gdsii_file_path_button.text.replace('\n','')
-        stl_folder = '\\'.join(gdsii_file_path.split('/')[:-1])
+        stl_folder = '\\'.join(gdsii_file_path.split('\\')[:-1])
         print(stl_folder)
 
         cmd = [

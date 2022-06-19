@@ -1,5 +1,6 @@
 build/
 dist/
+builder.py
 BlendGDSII.spec
 *.stl
 *.blend1

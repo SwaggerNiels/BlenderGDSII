@@ -10,6 +10,8 @@ import sys
 from random import random
 import os
 
+bpy.context.preferences.view.show_splash = False
+
 RANDOM_MAT = 0
 STD_thickness = 100 #[nm]
 

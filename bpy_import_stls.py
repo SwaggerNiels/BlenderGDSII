@@ -83,7 +83,7 @@ for stl_check,stl_layer,stl_material,stl_dimension in zip(stl_checks,stl_layers,
         if filename != '':
             print(f'Blender - Importing {filename}')
             obj = bpy.ops.import_mesh.stl(filepath=filename)
-            obj_name = filename.split('\\')[-1][:-4]
+            obj_name = filename.replace('/','\\').split('\\')[-1][:-4]
             mat_name = obj_name + '_material'
 
             bpy.data.objects[obj_name].select_set(True)

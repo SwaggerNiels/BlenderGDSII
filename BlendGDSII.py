@@ -2,6 +2,7 @@ from tkinter.filedialog import askopenfilename
 
 #custom tkinter
 import tkinter
+from tkinter.ttk import Combobox
 import tkinter.messagebox
 import customtkinter
 
@@ -291,7 +292,7 @@ def gdsiistl(gdsii_file_path, layerstack):
             layer_pointer += len(faces)
 
         # save layer to STL file
-        empty_file_path = '\\'.join(gdsii_file_path.split('\\')[:-1]) + '\\'
+        empty_file_path = '\\'.join(gdsii_file_path.replace('/','\\').split('\\')[:-1]) + '\\'
         filename = empty_file_path.replace('.','_') + f'{layername}.stl'
         print('    ({}, {}) to {}'.format(layer, layername, filename))
         layer_mesh_object = mesh.Mesh(layer_mesh_data, remove_empty_areas=False)
@@ -318,6 +319,12 @@ class App(customtkinter.CTk):
         'PP',
         'SU8',
         'Water',
+        'Red',
+        'Blue',
+        'Green',
+        'Yellow',
+        'Pink',
+        'Cyan',
     ]
 
     def __init__(self):
@@ -516,7 +523,7 @@ class App(customtkinter.CTk):
         #option (material)
         material = tkinter.StringVar(self.frame_right)
         material.set(self.material_options[0])
-        layer_button_option = customtkinter.CTkOptionMenu(master = self.frame_right,
+        layer_button_option = customtkinter.CTkComboBox(master = self.frame_right,
                                     variable = material,values = self.material_options)
         layer_button_option.grid(row=row_i+2, column=2, pady=10, padx=20, sticky="n")
         
@@ -636,7 +643,7 @@ class App(customtkinter.CTk):
         
     def open_blender(self):
         gdsii_file_path = self.gdsii_file_path_button.text.replace('\n','')
-        stl_folder = '\\'.join(gdsii_file_path.split('\\')[:-1])
+        stl_folder = '\\'.join(gdsii_file_path.replace('/','\\').split('\\')[:-1])
         print(stl_folder)
 
         cmd = [

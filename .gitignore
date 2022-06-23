@@ -1,5 +1,6 @@
 build/
 dist/
+tawab_example/
 builder.py
 BlendGDSII.spec
 *.stl

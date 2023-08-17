@@ -34,7 +34,7 @@ This is the example layout that can be loaded directly:
 ## Installation
 Installation is very easy!
 
-On this github page go to the Releases tab.
-
-Here you can download the zip-file, unpack it, and run the BlendGDSII.exe
+- Make sure you have Blender installed: https://www.blender.org
+- On this github page go to the Releases tab.
+- Here you can download the zip-file, unpack it, and run the BlendGDSII.exe
 ![afbeelding](https://user-images.githubusercontent.com/58084010/175270282-9b526233-3ab6-4981-9a9a-720d5ce65225.png)

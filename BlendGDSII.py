@@ -19,7 +19,11 @@ import subprocess
 
 #find newest blender.exe installation
 import glob
-BLENDER_PATH = glob.glob(r'C:\Program Files\Blender Foundation\Blender*\blender.exe')[-1]
+def blender_path_search_function(pattern):
+    return glob.glob(pattern)[-1]
+
+DEFAULT_BLENDER_PATH_PATTERN = r'C:\Program Files\Blender Foundation\Blender*\blender.exe'
+BLENDER_PATH = blender_path_search_function(DEFAULT_BLENDER_PATH_PATTERN)
 
 #find my path
 import os
@@ -306,6 +310,7 @@ class App(customtkinter.CTk):
     HEIGHT = 780
     lb = list(range(10))
     gdsii_file_path = ''
+    selected_blender_path = BLENDER_PATH
 
     material_options = [
         'Gold',
@@ -385,6 +390,13 @@ class App(customtkinter.CTk):
                                                 fg_color=("gray75", "gray30"),  # <- custom tuple-color
                                                 command=self.save)
         self.button_4.grid(row=5, column=0, pady=10, padx=20)
+        
+        #Change path button
+        self.button_5 = customtkinter.CTkButton(master=self.frame_left,
+                                                text="Change\n\nBlender path",
+                                                fg_color=("gray75", "gray30"),  # <- custom tuple-color
+                                                command=self.change_blender_path)
+        self.button_5.grid(row=6, column=0, pady=10, padx=20)
         
         #Test button
         # self.button_5 = customtkinter.CTkButton(master=self.frame_left,
@@ -477,11 +489,11 @@ class App(customtkinter.CTk):
             for i,save in enumerate(saves):
                 c=customtkinter.CTkButton(self.win, text=save)
                 c.grid(row=i+2, column=0, pady=10, padx=20, sticky="n")
-                c.config(command=lambda save = save: self.load_file(save))
+                c.configure(command=lambda save = save: self.load_file(save))
                 
                 d = customtkinter.CTkButton(self.win, text='delete')
                 d.grid(row=i+2, column=1, pady=10, padx=5, sticky="n")
-                d.config(command=lambda c=c, d=d, save=save: self.remove_file(c,d,save))
+                d.configure(command=lambda c=c, d=d, save=save: self.remove_file(c,d,save))
 
     def load_file(self,save):
         print(f'SETTING: {save}')
@@ -647,7 +659,7 @@ class App(customtkinter.CTk):
         print(stl_folder)
 
         cmd = [
-            BLENDER_PATH,
+            self.selected_blender_path,
             '--factory-startup',
             '-P',
             MY_PATH + r'\bpy_import_stls.py',
@@ -668,6 +680,59 @@ class App(customtkinter.CTk):
 
     def on_closing(self, event=0):
         self.destroy()
+
+    def change_blender_path(self, event=None):
+        self.blender_path_win = customtkinter.CTkToplevel()
+        self.blender_path_win.wm_title("Change the Blender path")
+
+        line1 = 'Adapt the blender path here'
+        line2 = 'You may use the * symbol for any arbitrary piece in the path.'
+        line3 = 'For instance use this to select the last version of Blender:' 
+        
+        self.label_blender_path_descr = customtkinter.CTkLabel(master=self.blender_path_win,
+                                              text=f"{line1}\n{line2}\n{line3}",
+                                              text_font=("Roboto Medium", -14))  # font name and size in px
+        self.label_blender_path_descr.grid(row=0, column=0, pady=10, padx=10)
+        
+        self.label_blender_path = customtkinter.CTkLabel(master=self.blender_path_win,
+                                              text=r'e.g.: "C:\Program Files\Blender Foundation\Blender*\blender.exe"',
+                                              text_font=("Roboto Medium", -12))  # font name and size in px
+        self.label_blender_path.grid(row=1, column=0, pady=10, padx=10)
+        
+        self.blender_path_entry = customtkinter.CTkEntry(master=self.blender_path_win,
+            placeholder_text=r'C:\Program Files\Blender Foundation\Blender*\blender.exe',
+            width=500)
+        self.blender_path_entry.grid(row=2, column=0, pady=0, padx=0, sticky="n")
+
+        b = customtkinter.CTkButton(self.blender_path_win, text="Check", command=self.check_blender_path)
+        b.grid(row=3, column=0)
+        b = customtkinter.CTkButton(self.blender_path_win, text="Save", command=self.save_blender_path)
+        b.grid(row=4, column=0)
+        
+    def check_blender_path(self):
+        try:
+            checking_blender_path_pattern = self.blender_path_entry.get()
+            if not checking_blender_path_pattern.endswith('blender.exe'):
+                self.label_blender_path.configure(text='Please include the "blender.exe" at the end of the path.')
+            else:
+                checking_blender_path = blender_path_search_function(checking_blender_path_pattern)
+                
+                self.label_blender_path.configure(text=f'Your new Blender path would be:\n{checking_blender_path}\nPlease save to confirm.')
+        except:
+            self.label_blender_path.configure(text='This path is not valid...')
+        
+    def save_blender_path(self):
+        try:
+            selected_blender_path_pattern = self.blender_path_entry.get()
+            if not selected_blender_path_pattern.endswith('blender.exe'):
+                self.label_blender_path.configure(text='Please include the "blender.exe" at the end of the path.')
+            else:
+                self.selected_blender_path = blender_path_search_function(selected_blender_path_pattern)
+
+                print(f'Blender path changed to:\n{self.selected_blender_path}')
+                self.blender_path_win.destroy()
+        except:
+            self.label_blender_path.configure(text='This path is not valid...')
 
     def testing(self):
         # print(f'Reading GDSII file {self.gdsii_file_path}...')

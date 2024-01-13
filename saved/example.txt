@@ -1,4 +1,4 @@
-c:\Users\niels\OneDrive\OneDriveDocs\BME\Thesis\Software\Scripts\BlendGDSII\example\example.gds
+c:\Users\niels\OneDrive\OneDriveDocs\98_MSc\Thesis\Software\Scripts\BlendGDSII\example\example.gds
 1,83,SU8,100,500
 1,82,Gold,0,100
 1,15,Silicon,-100,0

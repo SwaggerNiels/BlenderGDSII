@@ -33,7 +33,7 @@ layer_stack = argv[3]
 material_stack = argv[4]
 dimension_stack = argv[5]
 
-glob_search = stl_folder_path + r'\*.stl'
+glob_search = os.path.join(stl_folder_path, '*.stl')
 print(f'Looking for stl files:\n{glob_search}')
 stl_files = glob.glob(glob_search)
 print(f'found: {stl_files}')
@@ -73,6 +73,19 @@ bpy.data.objects['Cube'].select_set(True)
 bpy.data.objects['Light'].select_set(True)
 bpy.ops.object.delete(use_global=False)
 
+def import_stl(filepath):
+    # Blender 4.x+
+    if hasattr(bpy.ops.wm, "stl_import"):
+        obj = bpy.ops.wm.stl_import(filepath=filepath)
+
+    # Blender ≤ 3.x
+    elif hasattr(bpy.ops.import_mesh, "stl"):
+        obj = bpy.ops.import_mesh.stl(filepath=filepath)
+    
+    else:
+        raise RuntimeError("No STL importer found in this Blender version")
+    return(obj)
+
 for stl_check,stl_layer,stl_material,stl_dimension in zip(stl_checks,stl_layers,stl_materials,stl_dimensions):
     if stl_check:
         #find file
@@ -82,8 +95,8 @@ for stl_check,stl_layer,stl_material,stl_dimension in zip(stl_checks,stl_layers,
         
         if filename != '':
             print(f'Blender - Importing {filename}')
-            obj = bpy.ops.import_mesh.stl(filepath=filename)
-            obj_name = filename.replace('/','\\').split('\\')[-1][:-4]
+            obj = import_stl(filename)
+            obj_name = os.path.splitext(os.path.basename(filename))[0]
             mat_name = obj_name + '_material'
 
             bpy.data.objects[obj_name].select_set(True)
@@ -146,9 +159,10 @@ for area in bpy.context.screen.areas:
 
         bpy.data.objects['Camera'].data.clip_start = clip_start_value
         bpy.data.objects['Camera'].data.clip_end = clip_end_value
-
-        bpy.ops.view3d.view_selected(ctx)            # points view
-        bpy.ops.view3d.camera_to_view_selected(ctx)   # points camera
+        
+        with bpy.context.temp_override(area=area, region=area.regions[-1]): # FIX
+            bpy.ops.view3d.view_selected() # points view
+            bpy.ops.view3d.camera_to_view_selected() # points camera 
 
 bpy.ops.object.light_add(type='SUN', align='WORLD', location=(0, 0, 0), rotation=(0.261799, 0.261799*2, 0), scale=(1, 1, 1))
 bpy.data.objects["Sun"].select_set(True)
@@ -156,9 +170,31 @@ ob = bpy.context.active_object
 ob.data.energy = 5000
 bpy.data.objects["Sun"].select_set(False)
 
-bpy.context.scene.eevee.use_ssr = True
-bpy.context.scene.eevee.use_ssr_refraction = True
-bpy.context.scene.render.film_transparent = True
 
+scene = bpy.context.scene
+eevee = scene.eevee
+
+# Check for Blender ≤3.x to enable old EEVEE features
+if hasattr(eevee, "use_ssr"):
+    eevee.use_ssr = True
+
+    if hasattr(eevee, "use_ssr_refraction"):
+        eevee.use_ssr_refraction = True
+
+# And if not, check for EEVEE next, so Blender ≥4.x
+else:
+    if hasattr(eevee, "use_raytracing"):
+        eevee.use_raytracing = True
+
+    # Closest behaviour to SSR
+    if hasattr(eevee, "ray_tracing_method"):
+        eevee.ray_tracing_method = 'SCREEN'
+
+
+# Set Transparent background as default for convenience - although, this may confuse non-blender users?
+render = scene.render
+
+if hasattr(render, "film_transparent"):
+    render.film_transparent = True
 
 bpy.ops.object.select_all(action='DESELECT')

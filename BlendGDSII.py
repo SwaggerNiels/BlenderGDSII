@@ -8,7 +8,7 @@ import customtkinter
 
 #gdsiistl
 import sys # read command-line arguments
-import gdspy # open gds file
+import gdspy # open gds file - Note, requires workload "Desktop development with C++" from MSVC Build Tools from https://visualstudio.microsoft.com/visual-cpp-build-tools/ to be built. 
 import numpy as np # fast math on lots of points
 from stl import mesh # write stl file (python package name is "numpy-stl")
 import triangle # triangulate polygons
@@ -19,15 +19,63 @@ import subprocess
 
 #find newest blender.exe installation
 import glob
-def blender_path_search_function(pattern):
-    return glob.glob(pattern)[-1]
-
-DEFAULT_BLENDER_PATH_PATTERN = r'C:\Program Files\Blender Foundation\Blender*\blender.exe'
-BLENDER_PATH = blender_path_search_function(DEFAULT_BLENDER_PATH_PATTERN)
+import shutil
 
 #find my path
 import os
 MY_PATH = os.path.dirname(__file__)
+
+def blender_path_search_function(pattern):
+    results = glob.glob(pattern)
+    return results[-1] if results else None
+
+def guess_blender_path():
+    #if blender is on path, this will locate it for win/lin
+    blender = shutil.which("blender")
+    if blender:
+        return blender
+
+    # If not, we must check wildcard installs.
+    if sys.platform == "win32":
+        patterns = [
+            r"C:\Program Files\Blender Foundation\Blender*\blender.exe",
+            r"C:\Program Files\Blender Foundation\Blender\*\blender.exe",
+        ]
+
+    else:  # linux/macOS system structures
+
+        patterns = [
+            "/usr/bin/blender",
+            "/usr/local/bin/blender",
+            "/opt/blender-*/blender",
+            os.path.expanduser("~/Downloads/blender-*/blender"),
+            os.path.expanduser("~/Downloads/Blender*/blender"),
+            os.path.expanduser("~/bin/blender"),
+        ]
+
+    #Then we use the patterns in glob to find installs, and pick the latest version
+    matches = []
+    for pattern in patterns:
+        match = blender_path_search_function(pattern)
+        if match:
+            matches.append(match)
+            
+    if matches:
+        matches.sort()
+        return matches[-1]  # newest version
+
+    #We must return none if nothing is found.
+    return None
+
+
+if sys.platform == 'win32':
+    DEFAULT_BLENDER_PATH_PATTERN = r'C:\Program Files\Blender Foundation\Blender\*\blender.exe'
+else:
+    DEFAULT_BLENDER_PATH_PATTERN = "/opt/blender-*/blender"
+
+BLENDER_PATH = guess_blender_path()
+
+
 
 with open(MY_PATH + '/saved/example.txt','w') as f:
     f.write(f'''{MY_PATH}\\example\\example.gds
@@ -296,8 +344,8 @@ def gdsiistl(gdsii_file_path, layerstack):
             layer_pointer += len(faces)
 
         # save layer to STL file
-        empty_file_path = '\\'.join(gdsii_file_path.replace('/','\\').split('\\')[:-1]) + '\\'
-        filename = empty_file_path.replace('.','_') + f'{layername}.stl'
+        empty_file_path = os.path.dirname(gdsii_file_path)
+        filename = os.path.join(empty_file_path, f'{layername}.stl')
         print('    ({}, {}) to {}'.format(layer, layername, filename))
         layer_mesh_object = mesh.Mesh(layer_mesh_data, remove_empty_areas=False)
         layer_mesh_object.save(filename)
@@ -311,6 +359,7 @@ class App(customtkinter.CTk):
     lb = list(range(10))
     gdsii_file_path = ''
     selected_blender_path = BLENDER_PATH
+    
 
     material_options = [
         'Gold',
@@ -360,7 +409,7 @@ class App(customtkinter.CTk):
 
         self.label_1 = customtkinter.CTkLabel(master=self.frame_left,
                                               text="BlendGDSII\nlayout to blender",
-                                              text_font=("Roboto Medium", -16))  # font name and size in px
+                                              font=("Roboto Medium", -16))  # font name and size in px
         self.label_1.grid(row=1, column=0, pady=10, padx=10)
 
         #Convert button
@@ -556,7 +605,7 @@ class App(customtkinter.CTk):
 
     def open_gds(self):
         filePath = askopenfilename(
-            initialdir='C:/', title='Select a File', filetype=(("GDSII File", ".gds"), ("All Files", "*.*")))
+            initialdir='C:/', title='Select a File', filetypes=(("GDSII File", ".gds"), ("All Files", "*.*")))
         with open(filePath, 'rb') as askedFile:
             fileContents = askedFile.read()
         self.gdsii_file_path = filePath
@@ -647,25 +696,25 @@ class App(customtkinter.CTk):
                 layer = int(entry.get())
                 layerstack[layer] = (0,100,f'gdsii_{layer}')
 
-        gdsii_file_path = self.gdsii_file_path_button.text.replace('\n','')
+        gdsii_file_path = self.gdsii_file_path_button.cget("text").replace('\n','')
 
         print(f'Building stl files...')
         print(layerstack)
         gdsiistl(gdsii_file_path,layerstack)
         
     def open_blender(self):
-        gdsii_file_path = self.gdsii_file_path_button.text.replace('\n','')
-        stl_folder = '\\'.join(gdsii_file_path.replace('/','\\').split('\\')[:-1])
+        gdsii_file_path = self.gdsii_file_path_button.cget("text").replace('\n','')
+        stl_folder = os.path.dirname(gdsii_file_path)
         print(stl_folder)
 
         cmd = [
             self.selected_blender_path,
             '--factory-startup',
             '-P',
-            MY_PATH + r'\bpy_import_stls.py',
+            os.path.join(MY_PATH, 'bpy_import_stls.py'),
             '--',
             stl_folder,
-            MY_PATH + r'\materials.blend',
+            os.path.join(MY_PATH, 'materials.blend'),
             ','.join([str(check.get()) for check,_,_,_,_ in self.lb][::-1]),
             ','.join([entry.get() for _,entry,_,_,_ in self.lb][::-1]),
             ','.join([material.get() for _,_,material,_,_ in self.lb][::-1]),
@@ -684,26 +733,29 @@ class App(customtkinter.CTk):
     def change_blender_path(self, event=None):
         self.blender_path_win = customtkinter.CTkToplevel()
         self.blender_path_win.wm_title("Change the Blender path")
-
         line1 = 'Adapt the blender path here'
         line2 = 'You may use the * symbol for any arbitrary piece in the path.'
-        line3 = 'For instance use this to select the last version of Blender:' 
-        
+        line3 = 'For instance use this to select the last version of Blender:'
+    
+        if sys.platform == 'win32':
+            example_path = r'C:\Program Files\Blender Foundation\Blender\*\blender.exe'
+        else:
+            example_path = '/opt/blender-*/blender'
+    
         self.label_blender_path_descr = customtkinter.CTkLabel(master=self.blender_path_win,
                                               text=f"{line1}\n{line2}\n{line3}",
-                                              text_font=("Roboto Medium", -14))  # font name and size in px
+                                              font=("Roboto Medium", -14))
         self.label_blender_path_descr.grid(row=0, column=0, pady=10, padx=10)
-        
+    
         self.label_blender_path = customtkinter.CTkLabel(master=self.blender_path_win,
-                                              text=r'e.g.: "C:\Program Files\Blender Foundation\Blender*\blender.exe"',
-                                              text_font=("Roboto Medium", -12))  # font name and size in px
+                                              text=f'e.g.: "{example_path}"',
+                                              font=("Roboto Medium", -12))
         self.label_blender_path.grid(row=1, column=0, pady=10, padx=10)
-        
+    
         self.blender_path_entry = customtkinter.CTkEntry(master=self.blender_path_win,
-            placeholder_text=r'C:\Program Files\Blender Foundation\Blender*\blender.exe',
+            placeholder_text=example_path,
             width=500)
         self.blender_path_entry.grid(row=2, column=0, pady=0, padx=0, sticky="n")
-
         b = customtkinter.CTkButton(self.blender_path_win, text="Check", command=self.check_blender_path)
         b.grid(row=3, column=0)
         b = customtkinter.CTkButton(self.blender_path_win, text="Save", command=self.save_blender_path)
@@ -712,23 +764,27 @@ class App(customtkinter.CTk):
     def check_blender_path(self):
         try:
             checking_blender_path_pattern = self.blender_path_entry.get()
-            if not checking_blender_path_pattern.endswith('blender.exe'):
+            if checking_blender_path_pattern == "":
+                checking_blender_path_pattern = self.selected_blender_path
+            if sys.platform == 'win32' and not checking_blender_path_pattern.endswith('blender.exe'):
+                
                 self.label_blender_path.configure(text='Please include the "blender.exe" at the end of the path.')
             else:
                 checking_blender_path = blender_path_search_function(checking_blender_path_pattern)
-                
                 self.label_blender_path.configure(text=f'Your new Blender path would be:\n{checking_blender_path}\nPlease save to confirm.')
         except:
             self.label_blender_path.configure(text='This path is not valid...')
-        
+
     def save_blender_path(self):
         try:
             selected_blender_path_pattern = self.blender_path_entry.get()
-            if not selected_blender_path_pattern.endswith('blender.exe'):
+            if selected_blender_path_pattern == "":
+                selected_blender_path_pattern = self.selected_blender_path
+            if sys.platform == 'win32' and not selected_blender_path_pattern.endswith('blender.exe'):
+                print(selected_blender_path_pattern)
                 self.label_blender_path.configure(text='Please include the "blender.exe" at the end of the path.')
             else:
                 self.selected_blender_path = blender_path_search_function(selected_blender_path_pattern)
-
                 print(f'Blender path changed to:\n{self.selected_blender_path}')
                 self.blender_path_win.destroy()
         except:
